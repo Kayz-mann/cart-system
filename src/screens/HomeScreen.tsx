@@ -1,21 +1,48 @@
 //import liraries
 import { useNavigation } from '@react-navigation/native';
-import React, { Component, useLayoutEffect } from 'react';
+import React, { Component, useEffect, useLayoutEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Image, TextInput, ScrollView } from 'react-native';
 import { ChevronDownIcon, UserIcon, AdjustmentsVerticalIcon, MagnifyingGlassIcon } from 'react-native-heroicons/outline'
 import Categories from '../components/Categories';
 import FeaturedRow from '../components/FeaturedRow';
+import client from '../../sanity';
+import { z } from 'zod';
 
 
 // create a component
 const HomeScreen = (): JSX.Element => {
     const navigation = useNavigation();
+    const [featuredCategories, setFeaturedCategories] = useState([])
 
     useLayoutEffect(() => {
         navigation.setOptions({
             headerShown: false,
         })
     }, []);
+
+    useEffect(() => {
+        const schema = z.any()
+        schema.parse(
+            client.fetch(
+                `
+                    *[_type == 'featured'] {
+                        ...,
+                        restaurants[]->{
+                            ...,
+                            dishes[]->
+                        }
+                    }
+                `
+            ).then((data) => {
+                setFeaturedCategories(data)
+            })
+        )
+
+    }, []);
+
+
+
+    console.log('featured cartegories::', featuredCategories)
 
 
     return (
@@ -59,13 +86,22 @@ const HomeScreen = (): JSX.Element => {
                 className='bg-gray-100'
                 contentContainerStyle={{}}
             >
-                <View className='flex-1'>
+                <View className='flex-1 pb-15' >
                     {/* Category */}
                     <Categories />
 
-                    <FeaturedRow id={'1'} title={'Featured'} description={'Delivery in 30 minutes'} />
+                    {featuredCategories?.map((category: any) => (
 
-                    <FeaturedRow id={'1'} title={'Featured'} description={'Delivery in 30 minutes'} />
+                        <FeaturedRow
+                            key={category._id}
+                            id={category._id}
+                            title={category.name}
+                            description={category.short_description}
+                        />
+                    ))}
+
+
+                    {/* <FeaturedRow id={'1'} title={'Featured'} description={'Delivery in 30 minutes'} /> */}
                 </View>
             </ScrollView>
 

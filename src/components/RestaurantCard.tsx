@@ -1,28 +1,65 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, Image, View } from 'react-native';
 import { MapPinIcon, StarIcon } from 'react-native-heroicons/outline';
+import client, { urlFor } from '../../sanity';
+import { useNavigation } from '@react-navigation/native';
+import { z } from 'zod';
+import restaurant from '../../sanity-delivery/schemas/restaurant';
 
 interface Props {
     id: string;
-    imgUrl: string;
+    imgUrl: any;
     title: string
     rating: any;
     genre: string;
     address: string;
     short_description: string;
-    dishes: string[];
+    dishes: any;
     lng: string | number;
     lat: string | number;
 
 }
 
 const RestaurantCard: React.FC<Props> = ({ id, imgUrl, title, rating, genre, address, short_description, dishes, lng, lat }) => {
+    const navigation: any = useNavigation();
+    const [restaurants, setRestaurants] = useState<any>([])
+
+    useEffect(() => {
+        //get restaurant details by id
+        const schema = z.any()
+        schema.parse(
+            client.fetch(
+                `
+                    *[_type == 'featured' && _id == $id] {
+                        ...,
+                        restaurants[]->{
+                            ...,
+                            dishes[]->,
+                            type-> {
+                                name
+                            }
+                        }
+                    }[0]
+                `, { id: id }
+            ).then((data: any) => {
+                setRestaurants(data?.restaurants)
+            })
+        )
+
+    }, []);
+
+    console.log('show restaurants::||:', restaurants)
+
     return (
-        <TouchableOpacity className='bg-white mr-3 shadow'>
-            <Image source={{ uri: imgUrl }} className='h-64 w-64 rounded-sm mx-1' />
+        <View
+
+
+            className='bg-white mr-3 shadow'
+        >
+            <Image source={{ uri: urlFor(imgUrl).url() }} className='h-64 w-64 rounded-sm mx-1' />
             <View className='px-3 pb-4'>
-                <Text className='font-bold text-lg pt-4'></Text>
+                <Text className='font-bold text-lg pt-4'>{title}</Text>
 
                 <View className='flex-row items-center space-x-1'>
                     <StarIcon color='green' opacity={0.5} size={22} />
@@ -36,7 +73,7 @@ const RestaurantCard: React.FC<Props> = ({ id, imgUrl, title, rating, genre, add
                     <Text className='text-xs text-gray-500'>Nearby .  {address}</Text>
                 </View>
             </View>
-        </TouchableOpacity>
+        </View>
     );
 };
 
